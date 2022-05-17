@@ -4,10 +4,6 @@ const movies = require("./controllers/movies");
 
 const routes = express();
 
-routes.get("/", (req, res) => {
-  res.json("teste");
-});
-
 //categories
 routes.get("/categories", category.getAllCategories);
 routes.get("/category/:id", category.getCategoryById);
