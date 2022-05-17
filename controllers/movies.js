@@ -1,4 +1,6 @@
 const connection = require("../connection");
+const jwt = require("jsonwebtoken");
+const jwtSecret = require("../jwt-key");
 
 const getAllMovies = async (req, res) => {
   try {
@@ -42,30 +44,38 @@ const addMovies = async (req, res) => {
   if (!category_id) {
     return res.status(400).json("Category Id is required");
   }
+
   let moviesList = await connection.query(
     `SELECT * 
     FROM movies 
     WHERE name = $1
     AND year = $2
-    AND director = $3
-    AND category_id = $4`,
-    [name, year, director, category_id]
+    AND director = $3`,
+    [name, year, director]
   );
   if (moviesList.rowCount !== 0) {
     return res.status(404).json("Movies is already in the database");
   }
 
   try {
+    const token = jwt.sign(
+      {
+        name,
+        year,
+        director,
+        category_id,
+      },
+      jwtSecret
+    );
     const movies = await connection.query(
-      `INSERT INTO movies (name, year, director, category_id) 
-      VALUES ($1, $2, $3, $4)`,
-      [name, year, director, category_id]
+      `INSERT INTO movies (name, year, director, category_id, token) 
+      VALUES ($1, $2, $3, $4, $5)`,
+      [name, year, director, category_id, token]
     );
 
     if (movies.rowCount === 0) {
       return res.status(400).json("Movies could not be added");
     }
-
     res.status(200).json("Movies added successfully!");
   } catch (err) {
     return res.status(400).json(err.message);
@@ -106,15 +116,26 @@ const updateMovies = async (req, res) => {
       }
     }
 
+    const token = jwt.sign(
+      {
+        name,
+        year,
+        director,
+        category_id,
+      },
+      jwtSecret
+    );
+
     const updatedMovies = await connection.query(
       `UPDATE movies
-          SET name = $1, year = $2, director = $3, category_id = $4
-          WHERE id = $5`,
+          SET name = $1, year = $2, director = $3, category_id = $4, token = $5
+          WHERE id = $6`,
       [
         newMovies.name,
         newMovies.year,
         newMovies.director,
         newMovies.category_id,
+        token,
         id,
       ]
     );
